@@ -1,0 +1,153 @@
+{
+  "_readme": [
+    "Each entry defines a project's translation surface. The translate.py CLI",
+    "reads this to know what to translate, where to find English sources, and",
+    "where to write the results.",
+    "",
+    "Fields:",
+    "  repo:        GitHub owner/repo",
+    "  format:      json | arb | html",
+    "  description: what the app is, fed to the model for register/tone",
+    "  sources:     list of translation surfaces within the repo",
+    "",
+    "Each source:",
+    "  name:        human label for this surface",
+    "  kind:        catalog | listing | html_site",
+    "  english:     path to the English source file or directory",
+    "  output_dir:  where translated files go (relative to repo root)",
+    "  pattern:     filename pattern; {code} is the locale code",
+    "  model:       which Claude model to use (sonnet-5 or opus-5)",
+    "  locales:     optional override; defaults to the full 50",
+    "  notes:       optional path to a translation-notes.json",
+    "  char_limits: optional {field: max_chars} for store listings"
+  ],
+
+  "dawnlist": {
+    "repo": "sgf36/Dawnlist",
+    "format": "json",
+    "description": "Dawnlist is a job-search desktop application for Windows and Mac.",
+    "sources": [
+      {
+        "name": "App UI catalog",
+        "kind": "catalog",
+        "english": "app/resources/locales/en.json",
+        "output_dir": "app/resources/locales",
+        "pattern": "{code}.json",
+        "model": "claude-sonnet-5",
+        "notes": "tools/translation-notes.json"
+      },
+      {
+        "name": "Microsoft Store listing",
+        "kind": "listing",
+        "english": "store/listing/en.json",
+        "output_dir": "store/listing",
+        "pattern": "{code}.json",
+        "model": "claude-opus-5"
+      },
+      {
+        "name": "Mac App Store listing",
+        "kind": "listing",
+        "english": "store/listing-mac/en.json",
+        "output_dir": "store/listing-mac",
+        "pattern": "{code}.json",
+        "model": "claude-opus-5",
+        "locales": ["ar", "cs", "de", "el", "es", "fr", "he", "hi", "hr", "hu",
+                    "id", "it", "ja", "ko", "ms", "nl", "pl", "pt", "ro", "ru",
+                    "sv", "th", "tr", "uk", "vi", "zh"],
+        "char_limits": {"subtitle": 30, "keywords": 100}
+      },
+      {
+        "name": "Add-on listing",
+        "kind": "listing",
+        "english": "store/listing-addon/en.json",
+        "output_dir": "store/listing-addon",
+        "pattern": "{code}.json",
+        "model": "claude-opus-5",
+        "char_limits": {"name": 100, "description": 200}
+      }
+    ]
+  },
+
+  "easypost": {
+    "repo": "sgf36/EasyPost",
+    "format": "json",
+    "description": "Easy-Post Desktop is a postal shipping application for Windows and Mac.",
+    "sources": [
+      {
+        "name": "App UI catalog",
+        "kind": "catalog",
+        "english": "app/resources/locales/en.json",
+        "output_dir": "app/resources/locales",
+        "pattern": "{code}.json",
+        "model": "claude-sonnet-5"
+      }
+    ]
+  },
+
+  "easypost-mobile": {
+    "repo": "sgf36/Easy-Post-Mobile-Companion",
+    "format": "arb",
+    "description": "Easy-Post Mobile Companion is a Flutter app for tracking postal shipments.",
+    "sources": [
+      {
+        "name": "App UI catalog",
+        "kind": "catalog",
+        "english": "lib/l10n/app_en.arb",
+        "output_dir": "lib/l10n",
+        "pattern": "app_{code}.arb",
+        "model": "claude-sonnet-5",
+        "locales": ["ar", "cs", "de", "el", "es", "fr", "he", "hi", "hr", "hu",
+                    "id", "it", "ja", "ko", "ms", "nl", "pl", "pt", "ro", "ru",
+                    "sv", "th", "tr", "uk", "vi", "zh"]
+      },
+      {
+        "name": "App Store metadata",
+        "kind": "listing",
+        "english": "store/asc-metadata.json",
+        "output_dir": "store",
+        "pattern": "asc-metadata.json",
+        "model": "claude-opus-5",
+        "char_limits": {"subtitle": 30, "keywords": 100}
+      }
+    ]
+  },
+
+  "wren": {
+    "repo": "sgf36/wren",
+    "format": "arb",
+    "description": "Wren is a Flutter app for iOS and Android.",
+    "sources": [
+      {
+        "name": "App UI catalog",
+        "kind": "catalog",
+        "english": "lib/l10n/app_en.arb",
+        "output_dir": "lib/l10n",
+        "pattern": "app_{code}.arb",
+        "model": "claude-sonnet-5",
+        "locales": ["ar", "bn", "ca", "cs", "da", "de", "el", "es", "es_MX",
+                    "fi", "fr", "fr_CA", "gu", "he", "hi", "hr", "hu", "id",
+                    "it", "ja", "kn", "ko", "ml", "mr", "ms", "nl", "no", "or",
+                    "pa", "pl", "pt", "pt_PT", "ro", "ru", "sk", "sl", "sv",
+                    "ta", "te", "th", "tr", "uk", "ur", "vi", "zh", "zh_Hant"]
+      }
+    ]
+  },
+
+  "software-site": {
+    "repo": "sgf36/software-site",
+    "format": "html",
+    "description": "software.spencerfields.com — the business landing page for Spencer Fields Software.",
+    "sources": [
+      {
+        "name": "Website pages",
+        "kind": "html_site",
+        "english": "index.html",
+        "output_dir": "",
+        "pattern": "{code}/index.html",
+        "model": "claude-opus-5",
+        "locales": ["ar", "bn", "de", "es", "fr", "hi", "id", "ja", "mr",
+                    "pt", "ru", "sv", "te", "ur", "zh"]
+      }
+    ]
+  }
+}

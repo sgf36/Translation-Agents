@@ -1,0 +1,156 @@
+name: Translate
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Project to translate (or "all")'
+        required: true
+        type: choice
+        options:
+          - dawnlist
+          - easypost
+          - easypost-mobile
+          - wren
+          - software-site
+          - all
+      source:
+        description: 'Source name within the project (optional, all if empty)'
+        required: false
+        type: string
+      locales:
+        description: 'Comma-separated locale codes (optional, all if empty)'
+        required: false
+        type: string
+      mode:
+        description: 'Translation mode'
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - fill
+          - generate
+          - force
+        default: dry-run
+
+permissions:
+  contents: write
+
+env:
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Translation-Agents
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Clone target repository
+        env:
+          GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+        run: |
+          # Determine repo from project config
+          REPO=$(python3 -c "
+          import json
+          projects = json.load(open('projects.json'))
+          project = '${{ inputs.project }}'
+          if project == 'all':
+              repos = set(c['repo'] for k, c in projects.items() if not k.startswith('_'))
+              for r in repos:
+                  print(r)
+          else:
+              print(projects[project]['repo'])
+          ")
+
+          for repo in $REPO; do
+            owner=$(echo $repo | cut -d/ -f1)
+            name=$(echo $repo | cut -d/ -f2)
+            target_dir="repos/${owner}/${name}"
+            if [ ! -d "$target_dir" ]; then
+              git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${repo}.git" "$target_dir"
+            fi
+          done
+
+      - name: Run translation
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            FLAGS="--dry-run"
+          elif [ "${{ inputs.mode }}" = "fill" ]; then
+            FLAGS="--fill"
+          elif [ "${{ inputs.mode }}" = "force" ]; then
+            FLAGS="--force"
+          fi
+
+          if [ -n "${{ inputs.source }}" ]; then
+            FLAGS="$FLAGS --source '${{ inputs.source }}'"
+          fi
+
+          if [ -n "${{ inputs.locales }}" ]; then
+            FLAGS="$FLAGS --only ${{ inputs.locales }}"
+          fi
+
+          # Point output to cloned repos
+          eval python translate.py \
+            --project "${{ inputs.project }}" \
+            --output repos \
+            $FLAGS
+
+      - name: Create PRs with translated files
+        if: inputs.mode != 'dry-run'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+        run: |
+          REPO_LIST=$(python3 -c "
+          import json
+          projects = json.load(open('projects.json'))
+          project = '${{ inputs.project }}'
+          if project == 'all':
+              repos = set(c['repo'] for k, c in projects.items() if not k.startswith('_'))
+              for r in repos:
+                  print(r)
+          else:
+              print(projects[project]['repo'])
+          ")
+
+          for repo in $REPO_LIST; do
+            owner=$(echo $repo | cut -d/ -f1)
+            name=$(echo $repo | cut -d/ -f2)
+            dir="repos/${owner}/${name}"
+
+            cd "$dir"
+            if [ -n "$(git status --porcelain)" ]; then
+              BRANCH="translations/update-$(date +%Y%m%d-%H%M%S)"
+              git checkout -b "$BRANCH"
+              git add -A
+              git commit -m "Update translations from Translation-Agents
+
+          Project: ${{ inputs.project }}
+          Mode: ${{ inputs.mode }}
+          Locales: ${{ inputs.locales || 'all' }}"
+              git push origin "$BRANCH"
+              echo "Pushed translation updates to $repo on branch $BRANCH"
+            else
+              echo "No changes for $repo"
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done
+
+      - name: Upload translation output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: translation-output
+          path: repos/
+          retention-days: 7
