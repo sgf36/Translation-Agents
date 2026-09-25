@@ -77,15 +77,7 @@ jobs:
             name=$(echo "$repo" | cut -d/ -f2)
             target_dir="repos/${owner}/${name}"
             echo "Cloning $repo -> $target_dir"
-            # Try authenticated clone first (for private repos), fall back to public
-            if [ -n "${{ secrets.REPO_ACCESS_TOKEN }}" ]; then
-              git clone --depth 1 \
-                "https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/${repo}.git" \
-                "$target_dir" 2>/dev/null \
-              || git clone --depth 1 "https://github.com/${repo}.git" "$target_dir"
-            else
-              git clone --depth 1 "https://github.com/${repo}.git" "$target_dir"
-            fi
+            git clone --depth 1 "https://github.com/${repo}.git" "$target_dir"
           done
 
       - name: Run translation
@@ -114,6 +106,8 @@ jobs:
 
       - name: Push translated files
         if: inputs.mode != 'dry-run'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
           for repo in ${{ steps.repos.outputs.list }}; do
             owner=$(echo "$repo" | cut -d/ -f1)
@@ -122,9 +116,12 @@ jobs:
 
             cd "$dir"
             if [ -n "$(git status --porcelain)" ]; then
-              BRANCH="translations/update-$(date +%Y%m%d-%H%M%S)"
+              # Reconfigure remote with auth token for push
+              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${repo}.git"
               git config user.name "Translation-Agents"
               git config user.email "noreply@github.com"
+
+              BRANCH="translations/update-$(date +%Y%m%d-%H%M%S)"
               git checkout -b "$BRANCH"
               git add -A
               git commit -m "Update translations from Translation-Agents
