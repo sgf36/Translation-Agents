@@ -36,13 +36,12 @@ on:
 permissions:
   contents: write
 
-env:
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
 jobs:
   translate:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - name: Checkout Translation-Agents
         uses: actions/checkout@v4
@@ -56,29 +55,36 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Clone target repository
-        env:
-          GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+      - name: Determine target repos
+        id: repos
         run: |
-          # Determine repo from project config
-          REPO=$(python3 -c "
+          REPOS=$(python3 -c "
           import json
           projects = json.load(open('projects.json'))
           project = '${{ inputs.project }}'
           if project == 'all':
-              repos = set(c['repo'] for k, c in projects.items() if not k.startswith('_'))
-              for r in repos:
-                  print(r)
+              repos = sorted(set(c['repo'] for k, c in projects.items() if not k.startswith('_')))
           else:
-              print(projects[project]['repo'])
+              repos = [projects[project]['repo']]
+          print(' '.join(repos))
           ")
+          echo "list=$REPOS" >> "$GITHUB_OUTPUT"
 
-          for repo in $REPO; do
-            owner=$(echo $repo | cut -d/ -f1)
-            name=$(echo $repo | cut -d/ -f2)
+      - name: Clone target repositories
+        run: |
+          for repo in ${{ steps.repos.outputs.list }}; do
+            owner=$(echo "$repo" | cut -d/ -f1)
+            name=$(echo "$repo" | cut -d/ -f2)
             target_dir="repos/${owner}/${name}"
-            if [ ! -d "$target_dir" ]; then
-              git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${repo}.git" "$target_dir"
+            echo "Cloning $repo -> $target_dir"
+            # Try authenticated clone first (for private repos), fall back to public
+            if [ -n "${{ secrets.REPO_ACCESS_TOKEN }}" ]; then
+              git clone --depth 1 \
+                "https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/${repo}.git" \
+                "$target_dir" 2>/dev/null \
+              || git clone --depth 1 "https://github.com/${repo}.git" "$target_dir"
+            else
+              git clone --depth 1 "https://github.com/${repo}.git" "$target_dir"
             fi
           done
 
@@ -101,37 +107,24 @@ jobs:
             FLAGS="$FLAGS --only ${{ inputs.locales }}"
           fi
 
-          # Point output to cloned repos
           eval python translate.py \
             --project "${{ inputs.project }}" \
             --output repos \
             $FLAGS
 
-      - name: Create PRs with translated files
+      - name: Push translated files
         if: inputs.mode != 'dry-run'
-        env:
-          GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |
-          REPO_LIST=$(python3 -c "
-          import json
-          projects = json.load(open('projects.json'))
-          project = '${{ inputs.project }}'
-          if project == 'all':
-              repos = set(c['repo'] for k, c in projects.items() if not k.startswith('_'))
-              for r in repos:
-                  print(r)
-          else:
-              print(projects[project]['repo'])
-          ")
-
-          for repo in $REPO_LIST; do
-            owner=$(echo $repo | cut -d/ -f1)
-            name=$(echo $repo | cut -d/ -f2)
+          for repo in ${{ steps.repos.outputs.list }}; do
+            owner=$(echo "$repo" | cut -d/ -f1)
+            name=$(echo "$repo" | cut -d/ -f2)
             dir="repos/${owner}/${name}"
 
             cd "$dir"
             if [ -n "$(git status --porcelain)" ]; then
               BRANCH="translations/update-$(date +%Y%m%d-%H%M%S)"
+              git config user.name "Translation-Agents"
+              git config user.email "noreply@github.com"
               git checkout -b "$BRANCH"
               git add -A
               git commit -m "Update translations from Translation-Agents
@@ -140,7 +133,7 @@ jobs:
           Mode: ${{ inputs.mode }}
           Locales: ${{ inputs.locales || 'all' }}"
               git push origin "$BRANCH"
-              echo "Pushed translation updates to $repo on branch $BRANCH"
+              echo "::notice::Pushed translation updates to $repo on branch $BRANCH"
             else
               echo "No changes for $repo"
             fi

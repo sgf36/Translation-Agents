@@ -311,7 +311,11 @@ def get_source_locales(source_cfg: dict) -> list[tuple[str, str]]:
 
 def resolve_repo_path(repo: str) -> Path | None:
     owner, name = repo.split("/")
+    script_dir = Path(__file__).resolve().parent
     candidates = [
+        # GitHub Actions layout: repos/owner/name
+        script_dir / "repos" / owner / name,
+        # Cloud session layout: /home/user/owner/name
         Path("/home/user") / owner / name,
         Path("/home/user") / name,
         Path("/home/user") / owner / name.lower(),
