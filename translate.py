@@ -132,8 +132,14 @@ def make_client():
     return anthropic.Anthropic(api_key=key)
 
 
-def placeholders(text: str) -> set[str]:
-    return set(PLACEHOLDER.findall(text))
+def placeholders(value) -> set[str]:
+    if isinstance(value, list):
+        out: set[str] = set()
+        for item in value:
+            if isinstance(item, str):
+                out |= set(PLACEHOLDER.findall(item))
+        return out
+    return set(PLACEHOLDER.findall(value))
 
 
 def verify_json(english: dict, translated: dict) -> list[str]:
@@ -205,6 +211,13 @@ def translate_json(client, *, model: str, language: str, code: str,
         char_limits=limit_text,
     )
 
+    props = {}
+    for k, v in keys.items():
+        if isinstance(v, list):
+            props[k] = {"type": "array", "items": {"type": "string"}}
+        else:
+            props[k] = {"type": "string"}
+
     with client.messages.stream(
         model=model, max_tokens=MAX_TOKENS,
         messages=[{"role": "user", "content": prompt}],
@@ -212,7 +225,7 @@ def translate_json(client, *, model: str, language: str, code: str,
             "type": "json_schema",
             "schema": {
                 "type": "object",
-                "properties": {k: {"type": "string"} for k in keys},
+                "properties": props,
                 "required": list(keys),
                 "additionalProperties": False,
             },
