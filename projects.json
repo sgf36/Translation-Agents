@@ -16,7 +16,7 @@
     "  english:     path to the English source file or directory",
     "  output_dir:  where translated files go (relative to repo root)",
     "  pattern:     filename pattern; {code} is the locale code",
-    "  model:       which Claude model to use (sonnet-5 or opus-5)",
+    "  model:       which Claude model to use (default: claude-sonnet-5)",
     "  locales:     optional override; defaults to the full 50",
     "  notes:       optional path to a translation-notes.json",
     "  char_limits: optional {field: max_chars} for store listings"
@@ -42,7 +42,7 @@
         "english": "store/listing/en.json",
         "output_dir": "store/listing",
         "pattern": "{code}.json",
-        "model": "claude-opus-5"
+        "model": "claude-sonnet-5"
       },
       {
         "name": "Mac App Store listing",
@@ -50,7 +50,7 @@
         "english": "store/listing-mac/en.json",
         "output_dir": "store/listing-mac",
         "pattern": "{code}.json",
-        "model": "claude-opus-5",
+        "model": "claude-sonnet-5",
         "locales": ["ar", "cs", "de", "el", "es", "fr", "he", "hi", "hr", "hu",
                     "id", "it", "ja", "ko", "ms", "nl", "pl", "pt", "ro", "ru",
                     "sv", "th", "tr", "uk", "vi", "zh"],
@@ -62,7 +62,7 @@
         "english": "store/listing-addon/en.json",
         "output_dir": "store/listing-addon",
         "pattern": "{code}.json",
-        "model": "claude-opus-5",
+        "model": "claude-sonnet-5",
         "char_limits": {"name": 100, "description": 200}
       }
     ]
@@ -106,7 +106,7 @@
         "english": "store/asc-metadata.json",
         "output_dir": "store",
         "pattern": "asc-metadata.json",
-        "model": "claude-opus-5",
+        "model": "claude-sonnet-5",
         "char_limits": {"subtitle": 30, "keywords": 100}
       }
     ]
@@ -144,7 +144,7 @@
         "english": "index.html",
         "output_dir": "",
         "pattern": "{code}/index.html",
-        "model": "claude-opus-5",
+        "model": "claude-sonnet-5",
         "locales": ["ar", "bn", "de", "es", "fr", "hi", "id", "ja", "mr",
                     "pt", "ru", "sv", "te", "ur", "zh"]
       }
