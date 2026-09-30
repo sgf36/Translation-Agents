@@ -21,7 +21,6 @@
     "  notes:       optional path to a translation-notes.json",
     "  char_limits: optional {field: max_chars} for store listings"
   ],
-
   "dawnlist": {
     "repo": "sgf36/Dawnlist",
     "format": "json",
@@ -51,10 +50,38 @@
         "output_dir": "store/listing-mac",
         "pattern": "{code}.json",
         "model": "claude-sonnet-5",
-        "locales": ["ar", "cs", "de", "el", "es", "fr", "he", "hi", "hr", "hu",
-                    "id", "it", "ja", "ko", "ms", "nl", "pl", "pt", "ro", "ru",
-                    "sv", "th", "tr", "uk", "vi", "zh"],
-        "char_limits": {"subtitle": 30, "keywords": 100}
+        "locales": [
+          "ar",
+          "cs",
+          "de",
+          "el",
+          "es",
+          "fr",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "ja",
+          "ko",
+          "ms",
+          "nl",
+          "pl",
+          "pt",
+          "ro",
+          "ru",
+          "sv",
+          "th",
+          "tr",
+          "uk",
+          "vi",
+          "zh"
+        ],
+        "char_limits": {
+          "subtitle": 30,
+          "keywords": 100
+        }
       },
       {
         "name": "Add-on listing",
@@ -63,11 +90,13 @@
         "output_dir": "store/listing-addon",
         "pattern": "{code}.json",
         "model": "claude-sonnet-5",
-        "char_limits": {"name": 100, "description": 200}
+        "char_limits": {
+          "name": 100,
+          "description": 200
+        }
       }
     ]
   },
-
   "easypost": {
     "repo": "sgf36/EasyPost",
     "format": "json",
@@ -83,7 +112,6 @@
       }
     ]
   },
-
   "easypost-mobile": {
     "repo": "sgf36/Easy-Post-Mobile-Companion",
     "format": "arb",
@@ -96,9 +124,34 @@
         "output_dir": "lib/l10n",
         "pattern": "app_{code}.arb",
         "model": "claude-sonnet-5",
-        "locales": ["ar", "cs", "de", "el", "es", "fr", "he", "hi", "hr", "hu",
-                    "id", "it", "ja", "ko", "ms", "nl", "pl", "pt", "ro", "ru",
-                    "sv", "th", "tr", "uk", "vi", "zh"]
+        "locales": [
+          "ar",
+          "cs",
+          "de",
+          "el",
+          "es",
+          "fr",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "ja",
+          "ko",
+          "ms",
+          "nl",
+          "pl",
+          "pt",
+          "ro",
+          "ru",
+          "sv",
+          "th",
+          "tr",
+          "uk",
+          "vi",
+          "zh"
+        ]
       },
       {
         "name": "App Store metadata",
@@ -107,11 +160,13 @@
         "output_dir": "store",
         "pattern": "asc-metadata.json",
         "model": "claude-sonnet-5",
-        "char_limits": {"subtitle": 30, "keywords": 100}
+        "char_limits": {
+          "subtitle": 30,
+          "keywords": 100
+        }
       }
     ]
   },
-
   "wren": {
     "repo": "sgf36/wren",
     "format": "arb",
@@ -124,29 +179,136 @@
         "output_dir": "lib/l10n",
         "pattern": "app_{code}.arb",
         "model": "claude-sonnet-5",
-        "locales": ["ar", "bn", "ca", "cs", "da", "de", "el", "es", "es_MX",
-                    "fi", "fr", "fr_CA", "gu", "he", "hi", "hr", "hu", "id",
-                    "it", "ja", "kn", "ko", "ml", "mr", "ms", "nl", "no", "or",
-                    "pa", "pl", "pt", "pt_PT", "ro", "ru", "sk", "sl", "sv",
-                    "ta", "te", "th", "tr", "uk", "ur", "vi", "zh", "zh_Hant"]
+        "locales": [
+          "ar",
+          "bn",
+          "ca",
+          "cs",
+          "da",
+          "de",
+          "el",
+          "es",
+          "es_MX",
+          "fi",
+          "fr",
+          "fr_CA",
+          "gu",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "ja",
+          "kn",
+          "ko",
+          "ml",
+          "mr",
+          "ms",
+          "nl",
+          "no",
+          "or",
+          "pa",
+          "pl",
+          "pt",
+          "pt_PT",
+          "ro",
+          "ru",
+          "sk",
+          "sl",
+          "sv",
+          "ta",
+          "te",
+          "th",
+          "tr",
+          "uk",
+          "ur",
+          "vi",
+          "zh",
+          "zh_Hant"
+        ]
       }
     ]
   },
-
   "software-site": {
     "repo": "sgf36/software-site",
     "format": "html",
-    "description": "software.spencerfields.com — the business landing page for Spencer Fields Software.",
+    "description": "software.spencerfields.com \u2014 the business landing page for Spencer Fields Software.",
     "sources": [
       {
-        "name": "Website pages",
+        "name": "Home page",
         "kind": "html_site",
         "english": "index.html",
         "output_dir": "",
         "pattern": "{code}/index.html",
         "model": "claude-sonnet-5",
-        "locales": ["ar", "bn", "de", "es", "fr", "hi", "id", "ja", "mr",
-                    "pt", "ru", "sv", "te", "ur", "zh"]
+        "locales": [
+          "ar",
+          "bn",
+          "de",
+          "es",
+          "fr",
+          "hi",
+          "id",
+          "ja",
+          "mr",
+          "pt",
+          "ru",
+          "sv",
+          "te",
+          "ur",
+          "zh"
+        ]
+      },
+      {
+        "name": "Privacy policy",
+        "kind": "html_site",
+        "english": "privacy.html",
+        "output_dir": "",
+        "pattern": "{code}/privacy.html",
+        "model": "claude-sonnet-5",
+        "locales": [
+          "ar",
+          "bn",
+          "de",
+          "es",
+          "fr",
+          "hi",
+          "id",
+          "ja",
+          "mr",
+          "pt",
+          "ru",
+          "sv",
+          "te",
+          "ur",
+          "zh"
+        ]
+      },
+      {
+        "name": "Terms of use",
+        "kind": "html_site",
+        "english": "terms.html",
+        "output_dir": "",
+        "pattern": "{code}/terms.html",
+        "model": "claude-sonnet-5",
+        "locales": [
+          "ar",
+          "bn",
+          "de",
+          "es",
+          "fr",
+          "hi",
+          "id",
+          "ja",
+          "mr",
+          "pt",
+          "ru",
+          "sv",
+          "te",
+          "ur",
+          "zh"
+        ]
       }
     ]
   }
