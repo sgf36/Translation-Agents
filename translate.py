@@ -299,10 +299,11 @@ def translate_html(client, *, model: str, language: str, code: str,
         rtl=rtl, catalogue=html,
     )
 
-    resp = client.messages.create(
+    with client.messages.stream(
         model=model, max_tokens=MAX_TOKENS,
         messages=[{"role": "user", "content": prompt}],
-    )
+    ) as stream:
+        resp = stream.get_final_message()
 
     text = "".join(b.text for b in resp.content if b.type == "text")
     if not text.strip().startswith("<!") and not text.strip().startswith("<html"):
