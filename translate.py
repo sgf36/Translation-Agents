@@ -100,6 +100,8 @@ HTML_PROMPT = """\
 Translate this HTML page into {language} ({code}).
 
 Rules:
+- Return ONLY the raw HTML. No code fences, no commentary, no explanation.
+  Start your response with <!doctype html>.
 - Return the complete HTML document with all visible text translated.
 - Set the <html lang="..."> attribute to "{code}".{rtl}
 - Update <title>, <meta name="description">, og:title, og:description,
@@ -305,10 +307,16 @@ def translate_html(client, *, model: str, language: str, code: str,
     ) as stream:
         resp = stream.get_final_message()
 
-    text = "".join(b.text for b in resp.content if b.type == "text")
+    text = "".join(b.text for b in resp.content if b.type == "text").strip()
+    if text.startswith("```"):
+        first_nl = text.find("\n")
+        if first_nl > 0:
+            text = text[first_nl + 1:]
+        if text.rstrip().endswith("```"):
+            text = text.rstrip()[:-3].rstrip()
     if not text.strip().startswith("<!") and not text.strip().startswith("<html"):
         return None, "response does not look like HTML"
-    return text, ""
+    return text.strip(), ""
 
 
 # ---------------------------------------------------------------------------
