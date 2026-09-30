@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           - dawnlist
+          - dawnlist-site
           - easypost
           - easypost-mobile
           - wren
