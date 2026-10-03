@@ -168,3 +168,18 @@ def test_a_listing_that_never_fits_is_still_refused():
     assert out is None
     assert "full: 30 chars exceeds limit of 20" in problem
     assert len(client.sent) == 1 + LIMIT_RETRIES
+
+
+def test_a_source_gets_every_locale_it_names_even_outside_the_shared_fifty():
+    from translate import get_source_locales
+    got = dict(get_source_locales({"name": "x",
+                                   "locales": ["de", "fr_CA", "zh_Hant"]}))
+    assert got == {"de": "German", "fr_CA": "French (Canada)",
+                   "zh_Hant": "Chinese (Traditional)"}
+
+
+def test_an_unnamed_locale_stops_the_run_rather_than_vanishing():
+    import pytest
+    from translate import get_source_locales
+    with pytest.raises(SystemExit):
+        get_source_locales({"name": "x", "locales": ["xx_YY"]})
