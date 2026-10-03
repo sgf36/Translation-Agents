@@ -107,8 +107,11 @@ jobs:
             --output repos \
             $FLAGS
 
+      # Runs even when the translation step failed: a run that refuses four
+      # languages has still produced forty-two good ones, and discarding them
+      # costs a full re-run. The job still ends red, naming the refusals.
       - name: Push translated files
-        if: inputs.mode != 'dry-run'
+        if: ${{ !cancelled() && inputs.mode != 'dry-run' }}
         env:
           GH_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
         run: |

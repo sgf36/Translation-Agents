@@ -162,7 +162,7 @@ def verify_json(english: dict, translated: dict) -> list[str]:
 
 
 # Follow-up turns allowed when a translation is right but too long.
-LIMIT_RETRIES = 2
+LIMIT_RETRIES = 3
 
 
 def over_limit(translated: dict, limits: dict) -> dict:
@@ -175,10 +175,11 @@ def over_limit(translated: dict, limits: dict) -> dict:
 def shorten_request(over: dict) -> str:
     """The follow-up that asks for the over-long fields to be cut.
 
-    Aims at 95% of each limit, because the model's own count is not exact."""
+    Aims at 92% of each limit, because the model's own count is not exact:
+    at 95%, French still came back 15 characters over after two retries."""
     lines = []
     for field, (length, limit) in over.items():
-        target = int(limit * 0.95)
+        target = int(limit * 0.92)
         lines.append(f"  {field}: {length} characters; the limit is {limit}. "
                      f"Cut it to at most {target} characters "
                      f"(remove at least {length - target}).")
