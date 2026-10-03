@@ -364,11 +364,35 @@ def translate_html(client, *, model: str, language: str, code: str,
 # Project runner
 # ---------------------------------------------------------------------------
 
+# Languages a project ships that are not in the shared fifty: regional
+# variants and smaller languages an app's store listings already carry. A
+# source that names one in its own "locales" gets it; without a name here it
+# was silently skipped, which is how Wren's Play listing lost ten languages.
+EXTRA_LOCALE_NAMES = {
+    "ca": "Catalan",
+    "da": "Danish",
+    "es_MX": "Spanish (Latin America)",
+    "fi": "Finnish",
+    "fr_CA": "French (Canada)",
+    "no": "Norwegian (Bokmål)",
+    "pt_PT": "Portuguese (Portugal)",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "zh_Hant": "Chinese (Traditional)",
+}
+
+
 def get_source_locales(source_cfg: dict) -> list[tuple[str, str]]:
     if "locales" in source_cfg:
-        codes = set(source_cfg["locales"])
-        return [(c, n) for c, n, _ in SUPPORTED_LOCALES
-                if c in codes and c != DEFAULT_LOCALE]
+        names = {c: n for c, n, _ in SUPPORTED_LOCALES}
+        names.update(EXTRA_LOCALE_NAMES)
+        unknown = [c for c in source_cfg["locales"] if c not in names]
+        if unknown:
+            raise SystemExit(f"{source_cfg['name']}: no language name for "
+                             f"{', '.join(unknown)} — add it to "
+                             "EXTRA_LOCALE_NAMES rather than skip it")
+        return [(c, names[c]) for c in source_cfg["locales"]
+                if c != DEFAULT_LOCALE]
     return [(c, n) for c, n, _ in SUPPORTED_LOCALES if c != DEFAULT_LOCALE]
 
 
