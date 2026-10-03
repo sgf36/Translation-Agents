@@ -78,7 +78,8 @@ def test_placeholders():
 
 def test_projects_json_valid():
     projects = json.loads(
-        (Path(__file__).resolve().parents[1] / "projects.json").read_text())
+        (Path(__file__).resolve().parents[1] / "projects.json").read_text(
+            encoding="utf-8"))
     assert "_readme" in projects
     for key, cfg in projects.items():
         if key.startswith("_"):
@@ -92,6 +93,19 @@ def test_projects_json_valid():
             assert "kind" in src
             assert "english" in src
             assert "model" in src
+            assert src.get("format", "json") in ("json", "arb", "html"),                 f"{key}/{src['name']} bad format override"
+
+
+def test_wren_play_listing_is_json_not_arb():
+    """Wren's project format is ARB; its Play listing must override that, or the
+    listing is sent through the UI-string prompt and loses its char limits."""
+    projects = json.loads(
+        (Path(__file__).resolve().parents[1] / "projects.json").read_text(
+            encoding="utf-8"))
+    src = next(s for s in projects["wren"]["sources"]
+               if s["name"] == "Play Store listing")
+    assert src["format"] == "json"
+    assert src["char_limits"]["shortDescription"] == 80
 
 
 def test_load_notes_empty():
