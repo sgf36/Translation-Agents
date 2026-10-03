@@ -356,7 +356,10 @@ def resolve_repo_path(repo: str) -> Path | None:
 def run_source(client, project_cfg: dict, source_cfg: dict, *,
                wanted: set | None, force: bool, fill: bool,
                dry_run: bool, output_base: Path) -> int:
-    fmt = project_cfg["format"]
+    # A source may override the project's format: Wren's UI is ARB, but its
+    # Play listing is plain JSON, and reading JSON as ARB would hand the
+    # listing to the UI-string prompt and lose its character limits.
+    fmt = source_cfg.get("format", project_cfg["format"])
     description = project_cfg["description"]
     repo = project_cfg["repo"]
     kind = source_cfg["kind"]
