@@ -116,3 +116,55 @@ def test_load_notes_empty():
 def test_load_notes_nonexistent():
     result = load_notes(Path("/nonexistent/file.json"), {"key1"})
     assert result == ""
+
+
+class _FakeClient:
+    """Answers each stream() with the next scripted JSON, and records the
+    conversation it was sent, so a test can see the follow-up turn."""
+
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.sent = []
+        self.messages = self
+
+    def stream(self, *, messages, **_):
+        import contextlib
+        from types import SimpleNamespace
+        self.sent.append([dict(m) for m in messages])
+        text = json.dumps(self.replies.pop(0), ensure_ascii=False)
+        msg = SimpleNamespace(
+            content=[SimpleNamespace(type="text", text=text)],
+            stop_reason="end_turn")
+        return contextlib.nullcontext(
+            SimpleNamespace(get_final_message=lambda: msg))
+
+
+def _listing(client):
+    from translate import translate_json
+    return translate_json(client, model="m", language="French", code="fr",
+                          keys={"short": "Hello", "full": "A long text"},
+                          description="an app.", kind="listing",
+                          char_limits={"short": 10, "full": 20})
+
+
+def test_an_over_long_listing_is_asked_to_shorten_and_then_accepted():
+    client = _FakeClient([
+        {"short": "Bonjour", "full": "x" * 30},
+        {"short": "Bonjour", "full": "x" * 18},
+    ])
+    out, problem = _listing(client)
+    assert problem == ""
+    assert out["full"] == "x" * 18
+    follow_up = client.sent[1][-1]["content"]
+    assert "full: 30 characters; the limit is 20" in follow_up
+    assert "short" not in follow_up.split("over the limit:")[1].split("Return")[0]
+
+
+def test_a_listing_that_never_fits_is_still_refused():
+    from translate import LIMIT_RETRIES
+    client = _FakeClient([{"short": "Bonjour", "full": "x" * 30}]
+                         * (1 + LIMIT_RETRIES))
+    out, problem = _listing(client)
+    assert out is None
+    assert "full: 30 chars exceeds limit of 20" in problem
+    assert len(client.sent) == 1 + LIMIT_RETRIES

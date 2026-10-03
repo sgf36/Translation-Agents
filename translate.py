@@ -161,6 +161,35 @@ def verify_json(english: dict, translated: dict) -> list[str]:
     return problems
 
 
+# Follow-up turns allowed when a translation is right but too long.
+LIMIT_RETRIES = 2
+
+
+def over_limit(translated: dict, limits: dict) -> dict:
+    """{field: (length, limit)} for every field longer than its limit."""
+    return {f: (len(translated[f]), n) for f, n in limits.items()
+            if f in translated and isinstance(translated[f], str)
+            and len(translated[f]) > n}
+
+
+def shorten_request(over: dict) -> str:
+    """The follow-up that asks for the over-long fields to be cut.
+
+    Aims at 95% of each limit, because the model's own count is not exact."""
+    lines = []
+    for field, (length, limit) in over.items():
+        target = int(limit * 0.95)
+        lines.append(f"  {field}: {length} characters; the limit is {limit}. "
+                     f"Cut it to at most {target} characters "
+                     f"(remove at least {length - target}).")
+    return ("These fields are too long for the store, which refuses anything "
+            "over the limit:\n" + "\n".join(lines) + "\n"
+            "Return the whole JSON object again. Shorten only these fields: "
+            "keep every claim and the meaning, and cut by tightening wording "
+            "and dropping repetition, never by leaving a section out. Every "
+            "other field stays exactly as you wrote it.")
+
+
 def verify_char_limits(translated: dict, limits: dict) -> list[str]:
     problems = []
     for field, max_len in limits.items():
@@ -219,37 +248,48 @@ def translate_json(client, *, model: str, language: str, code: str,
             props[k] = {"type": "array", "items": {"type": "string"}}
         else:
             props[k] = {"type": "string"}
+    schema = {"format": {
+        "type": "json_schema",
+        "schema": {
+            "type": "object",
+            "properties": props,
+            "required": list(keys),
+            "additionalProperties": False,
+        },
+    }}
 
-    with client.messages.stream(
-        model=model, max_tokens=MAX_TOKENS,
-        messages=[{"role": "user", "content": prompt}],
-        output_config={"format": {
-            "type": "json_schema",
-            "schema": {
-                "type": "object",
-                "properties": props,
-                "required": list(keys),
-                "additionalProperties": False,
-            },
-        }},
-    ) as stream:
-        resp = stream.get_final_message()
+    messages = [{"role": "user", "content": prompt}]
+    for attempt in range(1 + LIMIT_RETRIES):
+        with client.messages.stream(
+            model=model, max_tokens=MAX_TOKENS,
+            messages=messages, output_config=schema,
+        ) as stream:
+            resp = stream.get_final_message()
 
-    text = "".join(b.text for b in resp.content if b.type == "text")
-    try:
-        translated = json.loads(text)
-    except json.JSONDecodeError as e:
-        if getattr(resp, "stop_reason", None) == "max_tokens":
-            return None, (f"response stopped at the {MAX_TOKENS}-token output "
-                          "limit — raise MAX_TOKENS")
-        return None, f"unparseable response ({e})"
+        text = "".join(b.text for b in resp.content if b.type == "text")
+        try:
+            translated = json.loads(text)
+        except json.JSONDecodeError as e:
+            if getattr(resp, "stop_reason", None) == "max_tokens":
+                return None, (f"response stopped at the {MAX_TOKENS}-token "
+                              "output limit — raise MAX_TOKENS")
+            return None, f"unparseable response ({e})"
 
-    problems = verify_json(keys, translated)
-    if char_limits:
-        problems.extend(verify_char_limits(translated, char_limits))
-    if problems:
-        return None, "; ".join(problems)
-    return translated, ""
+        problems = verify_json(keys, translated)
+        if problems:
+            return None, "; ".join(problems)
+        over = over_limit(translated, char_limits or {})
+        if not over:
+            return translated, ""
+        if attempt == LIMIT_RETRIES:
+            return None, "; ".join(verify_char_limits(translated, char_limits))
+        # A model asked for a limit rarely counts to it, and the languages
+        # that run longer than English are exactly the ones that miss. So say
+        # how far over each field is and ask again, rather than refusing a
+        # translation that is otherwise right.
+        messages += [{"role": "assistant", "content": text},
+                     {"role": "user", "content": shorten_request(over)}]
+    return None, "unreachable"
 
 
 def translate_arb(client, *, model: str, language: str, code: str,
